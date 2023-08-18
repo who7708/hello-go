@@ -12,6 +12,8 @@ import (
 
 	"github.com/bytedance/sonic"
 	"github.com/spaolacci/murmur3"
+
+	NodeExt "test6/ext"
 )
 
 type Student struct {
@@ -35,12 +37,14 @@ func main() {
 	// fmt.Println("======================")
 	// testHash()
 
-	murmur32ToString("hello1")
-	murmur32ToString("hello2")
-	murmur32ToString("hello3")
+	// murmur32ToString("hello1")
+	// murmur32ToString("hello2")
+	// murmur32ToString("hello3")
 
-	fmt.Println("======================")
+	// fmt.Println("======================")
 
+	// 类型扩展测试
+	NodeExt.TestNodeExt()
 }
 
 // // 打印 murmur3 hash 后的字符串，与java一致
