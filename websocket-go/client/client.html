@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Document</title>
+  <script>
+    window.addEventListener("load", function (evt) {
+      var output = document.getElementById("output");
+      var input = document.getElementById("input");
+      var ws;
+      var print = function (message) {
+        var d = document.createElement("div");
+        d.innerHTML = message;
+        output.appendChild(d);
+      };
+
+      document.getElementById("open").onclick = function (evt) {
+        if (ws) {
+          return false;
+        }
+        ws = new WebSocket("ws://localhost:8000/ws");
+        ws.onopen = function (evt) {
+          print("OPEN");
+        }
+        ws.onclose = function (evt) {
+          print("CLOSE");
+          ws = null;
+        }
+        ws.onmessage = function (evt) {
+          print("MESSAGE:" + evt.data);
+        }
+        ws.onerror = function (evt) {
+          print("ERROR:" + evt.data);
+        }
+        return false;
+      };
+      document.getElementById("send").onclick = function (evt) {
+        if (!ws) {
+
+        }
+      }
+    })
+  </script>
+</head>
+
+<body>
+  <button id="open">打开连接</button>
+  <button id="close">关闭连接</button>
+  <input type="text" id="input" />
+  <button id="send"></button>
+
+
+</body>
+
+</html>
