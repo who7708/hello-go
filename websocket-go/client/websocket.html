@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <meta charset="UTF-8">
+  <title></title>
+</head>
+<script src="https://cdn.bootcss.com/jquery/3.3.1/jquery.min.js" type="text/javascript" charset="utf-8"></script>
+
+<body>
+  <input type="text" id="txt" value="ws://127.0.0.1:8000/ws" />
+  <button id="connect">开启连接</button>
+  <button id="close">关闭连接</button>
+
+  <br>
+  要发送的数据：<input type="text" id="sendTxt" />
+  <button id="btn">发送数据</button>
+</body>
+
+</html>
+<script type="text/javascript">
+  var txt = document.querySelector('#txt')
+  var sendTxt = document.querySelector('#sendTxt')
+  var btn = document.querySelector('#btn')
+  var connect = document.querySelector('#connect')
+  var close = document.querySelector('#close')
+  var arr = []
+  var prev = (new Date()).getTime()
+  var next = (new Date()).getTime()
+  var ws = {}
+
+  connect.onclick = function () {
+    ws = new WebSocket(txt.value);
+    console.log(txt.value)
+    // 新建一个WebSocket通信，连接一个端口号为3000的本地服务器
+    ws.onopen = function (e) { //连接建立时触发函数
+      console.log('Connection to server opened' + ws.readyState);
+      // 只读属性readyState表示连接状态
+    }
+    ws.onmessage = function (evt) { //客户端接收服务端数据时触发
+      var s = evt.data
+      console.log(evt.data)
+      next = (new Date()).getTime()
+      $('html').prepend('距上次数据获取' + (next - prev) + '毫秒&nbsp;&nbsp;&nbsp;&nbsp;')
+      prev = next
+    }
+    ws.onclose = function (evt) { //连接关闭时触发
+      console.log("WebSocketClosed!");
+      console.log(evt);
+
+    };
+  }
+  close.onclick = function () {
+    ws.close()
+  }
+  btn.onclick = function () {
+    ws.send(sendTxt.value)
+  }
+</script>
