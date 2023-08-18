@@ -3,6 +3,8 @@ package main
 import (
 	"fmt"
 	"net/http"
+	"time"
+	"ws-go/impl"
 
 	"github.com/gorilla/websocket"
 )
@@ -22,33 +24,61 @@ func wsHandler(w http.ResponseWriter, r *http.Request) {
 	fmt.Println("Upgrade 开始建立连接")
 
 	var (
-		conn *websocket.Conn
-		err  error
-		data []byte
+		wsConn *websocket.Conn
+		err    error
+		data   []byte
+		conn   *impl.Connection
 	)
 	// Upgrade: websocket
-	if conn, err = upgrader.Upgrade(w, r, nil); err != nil {
+	if wsConn, err = upgrader.Upgrade(w, r, nil); err != nil {
 		fmt.Println("Upgrade 异常")
 		return
 	}
 
-	//  websocket.conn
-	for {
-		//  Text, Binary
-		// 读取消息
-		if _, data, err = conn.ReadMessage(); err != nil {
-			fmt.Println("读取异常")
-			goto ERR
-		}
-		// 回写消息
-		if err = conn.WriteMessage(websocket.TextMessage, data); err != nil {
-			fmt.Println("写入消息")
-			goto ERR
-		}
+	if conn, err = impl.InitConnection(wsConn); err != nil {
+		goto ERR
 	}
 
+	go func() {
+		var (
+			err error
+		)
+		for {
+			if err = conn.WriteMessage([]byte("heartbeat")); err != nil {
+				return
+			}
+			time.Sleep(1 * time.Second)
+		}
+	}()
+
+	for {
+		if data, err = conn.ReadMessage(); err != nil {
+			goto ERR
+		}
+		if err = conn.WriteMessage(data); err != nil {
+			goto ERR
+		}
+
+	}
+
+	// //  websocket.wsConn
+	// for {
+	// 	//  Text, Binary
+	// 	// 读取消息
+	// 	if _, data, err = wsConn.ReadMessage(); err != nil {
+	// 		fmt.Println("读取异常")
+	// 		goto ERR
+	// 	}
+	// 	// 回写消息
+	// 	if err = wsConn.WriteMessage(websocket.TextMessage, data); err != nil {
+	// 		fmt.Println("写入消息")
+	// 		goto ERR
+	// 	}
+	// }
+
 ERR:
-	conn.Close()
+	// 关闭连接的操作
+	// wsConn.Close()
 
 }
 
