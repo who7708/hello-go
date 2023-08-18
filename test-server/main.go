@@ -1,16 +1,14 @@
 package main
 
 import (
-	"net/http"
+	"test-server/api"
 
 	"github.com/labstack/echo"
 )
 
 func main() {
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, Golang")
-	})
+	e.GET("/", api.HelloGolang)
 
 	e.Logger.Fatal(e.Start(":8000"))
 }
