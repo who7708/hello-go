@@ -3,6 +3,7 @@ package main
 import (
 	"bufio"
 	"fmt"
+	"github.com/influxdata/influxdb/client/v2"
 	"io"
 	"log"
 	"net/url"
@@ -48,7 +49,7 @@ type WriteToInfluxDB struct {
 // 解析数据格式
 type Message struct {
 	TimeLocal                    time.Time
-	BytesSent                    int32
+	ByteSent                     int32
 	Path, Method, Scheme, Status string
 	UpstreamTime, RequestTime    float64
 }
@@ -80,8 +81,64 @@ func (r *ReadFromFile) Read(rc chan []byte) {
 
 // 实现写入接口
 func (w *WriteToInfluxDB) Write(wc chan *Message) {
+	// url@用户名@密码@数据库@精度
+	// "http://192.168.1.3:8086@admin@admin1234@testdb@s"
+	infSli := strings.Split(w.influxDBDsn, "@")
+
+	// Create a new HTTPClient
+	c, err := client.NewHTTPClient(client.HTTPConfig{
+		Addr:     infSli[0],
+		Username: infSli[1],
+		Password: infSli[2],
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer c.Close()
+
 	for data := range wc {
-		fmt.Println(data)
+		// Create a new point batch
+		bp, err := client.NewBatchPoints(client.BatchPointsConfig{
+			Database:  infSli[3],
+			Precision: infSli[4],
+		})
+		if err != nil {
+			log.Fatal(err)
+		}
+
+		// Create a point and add to batch
+		// tags: Path, Method, Scheme, Status
+		// fields: UpstreamTime, RequestTime, ByteSent
+		// Time: TimeLocal
+		tags := map[string]string{
+			"Path":   data.Path,
+			"Method": data.Method,
+			"Scheme": data.Scheme,
+			"Status": data.Status,
+		}
+		fields := map[string]interface{}{
+			"UpstreamTime": data.UpstreamTime,
+			"RequestTime":  data.RequestTime,
+			"ByteSent":     data.ByteSent,
+		}
+
+		pt, err := client.NewPoint("nginx_log", tags, fields, data.TimeLocal)
+		if err != nil {
+			log.Fatal(err)
+		}
+		bp.AddPoint(pt)
+
+		// Write the batch
+		if err := c.Write(bp); err != nil {
+			log.Fatal(err)
+		}
+
+		// // Close client resources
+		// if err := c.Close(); err != nil {
+		// 	log.Fatal(err)
+		// }
+		// fmt.Println(data)
+		log.Println("write success!")
 	}
 }
 
@@ -118,7 +175,7 @@ func (lp *LogProcess) Process() {
 
 		// bytesent
 		byteSent, _ := strconv.Atoi((ret[8]))
-		msg.BytesSent = int32(byteSent)
+		msg.ByteSent = int32(byteSent)
 
 		// Path, Method, Scheme, Status
 		// GET /foo?query=t HTTP/1.0
@@ -163,7 +220,7 @@ func main() {
 	}
 
 	w := &WriteToInfluxDB{
-		influxDBDsn: "username&password...",
+		influxDBDsn: "http://192.168.1.3:8086@admin@admin1234@testdb@s",
 	}
 
 	lp := &LogProcess{
