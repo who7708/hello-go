@@ -2,10 +2,12 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"flag"
 	"fmt"
 	"io"
 	"log"
+	"net/http"
 	"net/url"
 	"os"
 	"regexp"
@@ -56,6 +58,72 @@ type Message struct {
 	UpstreamTime, RequestTime    float64
 }
 
+// 系统状态监控
+type SystemInfo struct {
+	HandleLine   int     `json:"handleLine"`   // 总处理日志行数
+	Tps          float64 `json:"tps"`          // 系统吞出量
+	ReadChanLen  int     `json:"readChanLen"`  // read channel 长度
+	WriteChanLen int     `json:"writeChanLen"` // write channel 长度
+	RunTime      string  `json:"runTime"`      // 运行总时间
+	ErrNum       int     `json:"errNum"`       // 错误数
+}
+
+const (
+	TypeHandleLine = 0
+	TypeErrNum     = 1
+)
+
+var TypeMonitorChan = make(chan int, 200)
+
+type Monitor struct {
+	startTime time.Time
+	data      SystemInfo
+	tpsSli    []int
+}
+
+// 开启监控
+func (m *Monitor) start(lp *LogProcess) {
+
+	go func() {
+		for n := range TypeMonitorChan {
+			switch n {
+			case TypeErrNum:
+				m.data.ErrNum++
+			case TypeHandleLine:
+				m.data.HandleLine++
+			}
+		}
+	}()
+
+	ticker := time.NewTimer(time.Second * 5)
+	go func() {
+		for {
+			<-ticker.C
+			m.tpsSli = append(m.tpsSli, m.data.HandleLine)
+			if len(m.tpsSli) > 2 {
+				m.tpsSli = m.tpsSli[1:]
+			}
+		}
+	}()
+
+	http.HandleFunc("/monitor", func(w http.ResponseWriter, r *http.Request) {
+		m.data.RunTime = time.Now().Sub(m.startTime).String()
+		m.data.ReadChanLen = len(lp.rc)
+		m.data.WriteChanLen = len(lp.wc)
+
+		if len(m.tpsSli) > 2 {
+			m.data.Tps = float64(m.tpsSli[1]-m.tpsSli[0]) / 5
+		}
+
+		ret, _ := json.MarshalIndent(m.data, "", "  ")
+
+		io.WriteString(w, string(ret))
+	})
+
+	// listen 方法是阻塞的
+	http.ListenAndServe(":9193", nil)
+}
+
 // 实现读取接口
 func (r *ReadFromFile) Read(rc chan []byte) {
 	// 1. 打开文件
@@ -77,6 +145,8 @@ func (r *ReadFromFile) Read(rc chan []byte) {
 		} else if err != nil {
 			fmt.Println("read file error", err)
 		}
+
+		TypeMonitorChan <- TypeHandleLine
 		rc <- line[:len(line)-1]
 	}
 }
@@ -105,6 +175,7 @@ func (w *WriteToInfluxDB) Write(wc chan *Message) {
 			Precision: infSli[4],
 		})
 		if err != nil {
+			TypeMonitorChan <- TypeErrNum
 			log.Fatal(err)
 		}
 
@@ -162,6 +233,7 @@ func (lp *LogProcess) Process() {
 	for data := range lp.rc {
 		ret := r.FindStringSubmatch(string(data))
 		if len(ret) != 14 {
+			TypeMonitorChan <- TypeErrNum
 			log.Println("正则解析失败：", string(data))
 			continue
 		}
@@ -170,6 +242,7 @@ func (lp *LogProcess) Process() {
 		t, err := time.ParseInLocation("02/Jan/2006:15:04:05 +0000", ret[4], loc)
 		// t, err := time.ParseInLocation("20/Aug/2023:02:30:30 +0000", ret[4], loc)
 		if err != nil {
+			TypeMonitorChan <- TypeErrNum
 			log.Println("时间解析出错：", err.Error(), ret[4])
 			continue
 		}
@@ -183,6 +256,7 @@ func (lp *LogProcess) Process() {
 		// GET /foo?query=t HTTP/1.0
 		reqSli := strings.Split(ret[6], " ")
 		if len(reqSli) != 3 {
+			TypeMonitorChan <- TypeErrNum
 			log.Println("strings.Split fail", ret[6])
 			continue
 		}
@@ -191,6 +265,7 @@ func (lp *LogProcess) Process() {
 		// url 解析
 		u, err := url.Parse(reqSli[1])
 		if err != nil {
+			TypeMonitorChan <- TypeErrNum
 			log.Println("url parse fail:", err)
 			continue
 		}
@@ -247,5 +322,10 @@ func main() {
 	go lp.Process()
 	go lp.write.Write(lp.wc)
 
-	time.Sleep(100 * time.Second)
+	m := &Monitor{
+		startTime: time.Now(),
+		data:      SystemInfo{},
+	}
+
+	m.start(lp)
 }
