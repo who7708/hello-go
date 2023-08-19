@@ -294,8 +294,11 @@ func (lp *LogProcess) Process() {
 func main() {
 	// go run log_process.go -path ./access.log -influxDsn "http://192.168.1.3:8086@admin@admin1234@testdb@s"
 	var path, influxDsn string
+	var pn, wn int
 	flag.StringVar(&path, "path", "./access.log", "读取文件路径")
 	flag.StringVar(&influxDsn, "influxDsn", "http://192.168.1.3:8086@admin@admin1234@testdb@s", "InfluxDB数据连接url")
+	flag.IntVar(&pn, "pn", 2, "日志处理并发数")
+	flag.IntVar(&wn, "wn", 4, "日志写入并发数")
 	flag.Parse()
 
 	r := &ReadFromFile{
@@ -308,8 +311,8 @@ func main() {
 
 	lp := &LogProcess{
 		// 初始化
-		rc: make(chan []byte),
-		wc: make(chan *Message),
+		rc: make(chan []byte, 200),
+		wc: make(chan *Message, 200),
 		// path:        "/tmp/access.log",
 		// influxDBDsn: "username&password...",
 		read:  r,
@@ -319,8 +322,12 @@ func main() {
 	// 并发执行
 	// go (*lp).ReadFromFile()
 	go lp.read.Read(lp.rc)
-	go lp.Process()
-	go lp.write.Write(lp.wc)
+	for i := 0; i < pn; i++ {
+		go lp.Process()
+	}
+	for i := 0; i < wn; i++ {
+		go lp.write.Write(lp.wc)
+	}
 
 	m := &Monitor{
 		startTime: time.Now(),
