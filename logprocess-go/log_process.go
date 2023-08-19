@@ -2,8 +2,8 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
-	"github.com/influxdata/influxdb/client/v2"
 	"io"
 	"log"
 	"net/url"
@@ -12,6 +12,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/influxdata/influxdb/client/v2"
 )
 
 // 读取接口
@@ -215,12 +217,18 @@ func (lp *LogProcess) Process() {
 // }
 
 func main() {
+	// go run log_process.go -path ./access.log -influxDsn "http://192.168.1.3:8086@admin@admin1234@testdb@s"
+	var path, influxDsn string
+	flag.StringVar(&path, "path", "./access.log", "读取文件路径")
+	flag.StringVar(&influxDsn, "influxDsn", "http://192.168.1.3:8086@admin@admin1234@testdb@s", "InfluxDB数据连接url")
+	flag.Parse()
+
 	r := &ReadFromFile{
-		path: "./access.log",
+		path: path,
 	}
 
 	w := &WriteToInfluxDB{
-		influxDBDsn: "http://192.168.1.3:8086@admin@admin1234@testdb@s",
+		influxDBDsn: influxDsn,
 	}
 
 	lp := &LogProcess{
