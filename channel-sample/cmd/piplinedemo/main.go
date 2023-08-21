@@ -14,7 +14,9 @@ func main() {
 
 func readerSourceDemo() {
 	const filename = "small.in"
-	const n = 100_000_000
+	// const n = 100_000_000
+	// const n = 10_000
+	const n = 64
 	file, err := os.Create(filename)
 	if err != nil {
 		panic(err)
@@ -31,7 +33,7 @@ func readerSourceDemo() {
 	if err != nil {
 		panic(err)
 	}
-	p = pipline.ReaderSource(bufio.NewReader(file))
+	p = pipline.ReaderSource(bufio.NewReader(file), -1)
 
 	// 打印前100个
 	count := 0
