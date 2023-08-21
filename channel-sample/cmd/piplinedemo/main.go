@@ -21,7 +21,11 @@ func readerSourceDemo() {
 	}
 	defer file.Close()
 	p := pipline.RandomSource(n)
-	pipline.WriteSink(bufio.NewWriter(file), p)
+
+	writer := bufio.NewWriter(file)
+	pipline.WriteSink(writer, p)
+	// 将最后buff中的数据flush掉
+	writer.Flush()
 
 	file, err = os.Open(filename)
 	if err != nil {
