@@ -2,13 +2,21 @@ package pipline
 
 import (
 	"encoding/binary"
+	"fmt"
 	"io"
 	"math/rand"
 	"sort"
+	"time"
 )
 
+var startTime time.Time
+
+func Init() {
+	startTime = time.Now()
+}
+
 func ArraySource(a ...int) <-chan int {
-	out := make(chan int)
+	out := make(chan int, 1024)
 
 	go func() {
 		for _, v := range a {
@@ -20,16 +28,18 @@ func ArraySource(a ...int) <-chan int {
 }
 
 func InMemSort(in <-chan int) <-chan int {
-	out := make(chan int)
+	out := make(chan int, 1024)
 	go func() {
 		// read to memory
 		a := []int{}
 		for v := range in {
 			a = append(a, v)
 		}
+		fmt.Printf("read done: %v\n", time.Now().Sub(startTime))
 
 		// 排序
 		sort.Ints(a)
+		fmt.Printf("InMemSort done: %v\n", time.Now().Sub(startTime))
 
 		// 输出
 		for _, v := range a {
@@ -42,7 +52,7 @@ func InMemSort(in <-chan int) <-chan int {
 }
 
 func Merge(in1, in2 <-chan int) <-chan int {
-	out := make(chan int)
+	out := make(chan int, 1024)
 	go func() {
 		v1, ok1 := <-in1
 		v2, ok2 := <-in2
@@ -56,23 +66,27 @@ func Merge(in1, in2 <-chan int) <-chan int {
 			}
 		}
 		close(out)
+		fmt.Printf("Merge done: %v\n", time.Now().Sub(startTime))
 	}()
 	return out
 }
 
-func ReaderSource(reader io.Reader) <-chan int {
-	out := make(chan int)
+// chunkSize 分块大小
+func ReaderSource(reader io.Reader, chunkSize int) <-chan int {
+	out := make(chan int, 1024)
 	go func() {
 		buffer := make([]byte, 8)
+		byteRead := 0
 		for {
 			n, err := reader.Read(buffer)
+			byteRead += n
 			if n > 0 {
 				v := int(
 					binary.BigEndian.Uint64(buffer))
 				out <- v
 			}
 
-			if err != nil {
+			if err != nil || (chunkSize != -1 && byteRead >= chunkSize) {
 				break
 			}
 		}
@@ -91,7 +105,7 @@ func WriteSink(w io.Writer, in <-chan int) {
 
 // 生成随机数
 func RandomSource(num int) <-chan int {
-	out := make(chan int)
+	out := make(chan int, 1024)
 
 	go func() {
 		for i := 0; i < num; i++ {
@@ -100,4 +114,16 @@ func RandomSource(num int) <-chan int {
 		close(out)
 	}()
 	return out
+}
+
+func MergeN(inputs ...<-chan int) <-chan int {
+	if len(inputs) == 1 {
+		return inputs[0]
+	}
+
+	m := len(inputs) / 2
+	// merge inputs[0..m] and inputs [m..end]
+	return Merge(
+		MergeN(inputs[:m]...),
+		MergeN(inputs[m:]...))
 }
