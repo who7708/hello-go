@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"github.com/influxdata/influxdb/client/v2"
 )
 
 // 读取接口
