@@ -17,13 +17,16 @@ func ArraySource(a ...int) <-chan int {
 func InMemSort(in <-chan int) <-chan int {
 	out := make(chan int)
 	go func() {
+		// read to memory
 		a := []int{}
 		for v := range in {
 			a = append(a, v)
 		}
 
+		// 排序
 		sort.Ints(a)
 
+		// 输出
 		for _, v := range a {
 			out <- v
 		}
@@ -38,7 +41,7 @@ func Merge(in1, in2 <-chan int) <-chan int {
 	go func() {
 		v1, ok1 := <-in1
 		v2, ok2 := <-in2
-		if ok1 || ok2 {
+		for ok1 || ok2 {
 			if !ok2 || (ok1 && v1 <= v2) {
 				out <- v1
 				v1, ok1 = <-in1
@@ -46,7 +49,7 @@ func Merge(in1, in2 <-chan int) <-chan int {
 				out <- v2
 				v2, ok2 = <-in2
 			}
-		} 
+		}
 		close(out)
 	}()
 	return out
