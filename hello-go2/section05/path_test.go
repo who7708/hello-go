@@ -40,3 +40,25 @@ func TestSetHomeDir(t *testing.T) {
 		})
 	}
 }
+
+func Test_path_Resolve(t *testing.T) {
+	type args struct {
+		path string
+	}
+	tests := []struct {
+		name string
+		p    *path
+		args args
+		want string
+	}{
+		// TODO: Add test cases.
+		{name: "Test1", p: &path{homeDir: "/", configFile: "test.a"}, args: args{path: "/test"}, want: "/test"},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if got := tt.p.Resolve(tt.args.path); got != tt.want {
+				t.Errorf("path.Resolve() = %v, want %v", got, tt.want)
+			}
+		})
+	}
+}

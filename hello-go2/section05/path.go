@@ -3,6 +3,7 @@ package section05
 import (
 	"os"
 	P "path"
+	"path/filepath"
 )
 
 const Name = "clash"
@@ -31,4 +32,33 @@ func SetHomeDir(root string) {
 // SetConfig is used to set the configuration file
 func SetConfig(file string) {
 	Path.configFile = file
+}
+
+func (p *path) HomeDir() string {
+	return p.homeDir
+}
+
+func (p *path) Config() string {
+	return p.configFile
+}
+
+// Resolve return a absolute path or a relative path with homedir
+func (p *path) Resolve(path string) string {
+	if !filepath.IsAbs(path) {
+		return filepath.Join(p.homeDir, path)
+	}
+
+	return path
+}
+
+func (p *path) MMDB() string {
+	return P.Join(p.homeDir, "Country.mmdb")
+}
+
+func (p *path) OldCache() string {
+	return P.Join(p.homeDir, ".cache")
+}
+
+func (p *path) Cache() string {
+	return P.Join(p.homeDir, "cache.db")
 }
