@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"learn/section04"
+	"learn/section05"
 	"log"
 	"net/http"
 )
@@ -19,11 +19,18 @@ func main() {
 	// section02.Run()
 
 	// section03.Run()
-	section04.Run()
+	// section04.Run()
 
 	// a := section03.App{}
 	// a.Initialize()
 	// a.Run(":8001")
+
+	testPath()
+}
+
+func testPath() {
+	section05.SetConfig("test.cfg")
+	section05.SetHomeDir("")
 }
 
 func run() {
