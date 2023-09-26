@@ -1,0 +1,10 @@
+
+
+*.exe
+
+vendor/
+
+*.log
+
+*.in
+*.out
