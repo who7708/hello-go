@@ -28,7 +28,8 @@ func main() {
 
 	// testPath()
 
-	base.Run()
+	// base.Run()
+	base.Run1()
 }
 
 func testPath() {
