@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"learn/base"
 	"learn/section05"
 	"log"
 	"net/http"
@@ -25,7 +26,9 @@ func main() {
 	// a.Initialize()
 	// a.Run(":8001")
 
-	testPath()
+	// testPath()
+
+	base.Run()
 }
 
 func testPath() {
