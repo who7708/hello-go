@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"learn/base"
+	"learn/graph"
 	"learn/section05"
 	"log"
 	"net/http"
@@ -29,7 +29,9 @@ func main() {
 	// testPath()
 
 	// base.Run()
-	base.Run1()
+	// base.Run1()
+
+	graph.GraphRun()
 }
 
 func testPath() {
