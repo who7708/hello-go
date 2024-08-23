@@ -1,9 +1,9 @@
 package services
 
 import (
+	"myproject/common/database"
+	"myproject/common/utils"
 	"myproject/internal/models"
-	"myproject/pkg/database"
-	"myproject/pkg/utils"
 )
 
 func RegisterUser(username, password string) error {

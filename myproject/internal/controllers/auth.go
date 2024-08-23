@@ -1,10 +1,9 @@
 package controllers
 
 import (
-	"net/http"
-
+	"myproject/common/utils"
 	"myproject/internal/services"
-	"myproject/pkg/utils"
+	"net/http"
 )
 
 func RegisterHandler(w http.ResponseWriter, r *http.Request) {

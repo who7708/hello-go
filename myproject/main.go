@@ -4,8 +4,8 @@ import (
 	"log"
 	"net/http"
 
+	"myproject/common/database"
 	"myproject/internal/controllers"
-	"myproject/pkg/database"
 )
 
 func main() {
